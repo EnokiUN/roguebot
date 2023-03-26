@@ -16,8 +16,8 @@ python-dotenv = "^1.0.0"
 coloredlogs = "^15.0.1"
 
 [tool.poetry.group.dev.dependencies]
-disnake = "^2.8.1"
 pynvim = "^0.4.3"
+ruff = "^0.0.259"
 
 [tool.ruff]
 select = [
