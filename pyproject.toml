@@ -1,0 +1,59 @@
+[tool.poetry]
+name = "roguebot"
+version = "0.1.0"
+description = ""
+authors = ["Enoki <enokiun@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+disnake = "^2.8.1"
+disnake-ext-components = {git = "https://github.com/disnakecommunity/disnake-ext-components", rev = "rewrite"}
+disnake-ext-plugins = {git = "https://github.com/DisnakeCommunity/disnake-ext-plugins"}
+aiomysql = "^0.1.1"
+redis = "^4.5.3"
+python-dotenv = "^1.0.0"
+coloredlogs = "^15.0.1"
+
+[tool.poetry.group.dev.dependencies]
+disnake = "^2.8.1"
+pynvim = "^0.4.3"
+
+[tool.ruff]
+select = [
+    "E",
+    "F",
+    "W",
+    "C90",
+    "I",
+    "N",
+    "UP",
+    "ANN",
+    "S",
+    "BLE",
+    "B",
+    "C4",
+    "DTZ",
+    "ISC",
+    "G",
+    "PIE",
+    "Q",
+    "RSE",
+    "RET",
+    "SIM",
+    "TCH",
+    "ARG",
+    "PTH",
+    "PGH",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "TRY",
+    "RUF",
+]
+ignore = ["S101", "ANN101", "ANN102", "ANN201", "TRY003","F405", "ANN204", "N812", "ANN202", "S311"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
