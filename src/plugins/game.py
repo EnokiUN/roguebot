@@ -26,7 +26,7 @@ class Position(NamedTuple):
 
 
 ORIGIN = Position(0, 0)
-CENTER = Position(math.floor(MAP_WIDTH / 2), math.floor(MAP_HEIGHT/2))
+CENTER = Position(math.floor(MAP_WIDTH / 2), math.floor(MAP_HEIGHT / 2))
 
 
 class Tile(Protocol):
@@ -34,7 +34,9 @@ class Tile(Protocol):
     display: str
     solid: bool = False
 
-    def interact(self, game: GameView, position: Position):  # noqa: ARG002
+    def interact(
+        self, game: GameView, current_map: Map, position: Position # noqa: ARG002
+    ):
         return None
 
 
@@ -51,14 +53,14 @@ class Wall(Tile):
 
 class Book(Tile):
     name = "Book"
-    display = ":book:"
+    display = "<:booktile:1089588826244124712>"
     solid = True
 
-    def interact(self, game: GameView, position: Position):
+    def interact(self, game: GameView, current_map: Map, position: Position):
         knowledge = game.data.get("knowledge", 0) + 1
         game.data["knowledge"] = knowledge
         game.message = f"You have acquired {knowledge} knowledge."
-        game.map.tiles[position] = Stone()
+        current_map.tiles[position] = Stone()
 
 
 class Map:
@@ -100,29 +102,37 @@ class Player:
 
     def move(self, direction: Direction, game: GameView):
         new_pos = self.pos + direction
+        new_map = None
 
         if new_pos.x == -1:
             new_map_pos = game.map.pos + Direction.Left
-            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
             new_pos = Position(MAP_WIDTH - 1, new_pos.y)
         elif new_pos.x == MAP_WIDTH:
             new_map_pos = game.map.pos + Direction.Right
-            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
             new_pos = Position(0, new_pos.y)
 
         if new_pos.y == -1:
             new_map_pos = game.map.pos + Direction.Up
-            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
             new_pos = Position(new_pos.x, MAP_HEIGHT - 1)
         if new_pos.y == MAP_WIDTH:
             new_map_pos = game.map.pos + Direction.Down
-            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
             new_pos = Position(new_pos.x, 0)
 
-        tile = game.map.tiles[new_pos]
-        tile.interact(game, new_pos)
+        if new_map:
+            tile = new_map.tiles[new_pos]
+            tile.interact(game, new_map, new_pos)
+        else:
+            tile = game.map.tiles[new_pos]
+            tile.interact(game, game.map, new_pos)
+
         if not tile.solid:
             self.pos = new_pos
+            if new_map:
+                game.map = new_map
 
 
 class GameView(View):
