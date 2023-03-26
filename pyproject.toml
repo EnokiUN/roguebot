@@ -52,7 +52,7 @@ select = [
     "TRY",
     "RUF",
 ]
-ignore = ["S101", "ANN101", "ANN102", "ANN201", "TRY003","F405", "ANN204", "N812", "ANN202", "S311"]
+ignore = ["S101", "ANN101", "ANN102", "ANN201", "TRY003","F405", "ANN204", "N812", "ANN202", "S311", "RET503"]
 
 [build-system]
 requires = ["poetry-core"]
