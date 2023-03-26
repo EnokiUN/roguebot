@@ -1,4 +1,3 @@
-import logging
 from asyncio import run
 from os import getenv
 
@@ -7,15 +6,9 @@ from dotenv import load_dotenv
 from .bot import Bot
 from .logging import setup_logger
 
-logger = logging.getLogger(__name__)
-
 
 async def main():
     bot = Bot()
-
-    @bot.event
-    async def on_ready(): # pyright: ignore
-        logger.info("Started as %s", bot.user)
 
     load_dotenv()
 

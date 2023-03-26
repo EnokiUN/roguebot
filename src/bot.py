@@ -1,5 +1,6 @@
+import logging
 from os import getenv
-from typing import cast
+from typing import Any, cast
 
 from aiomysql import create_pool
 from disnake.ext import commands
@@ -11,6 +12,10 @@ from .aiomysql_patches import MariaDBPool
 class Bot(commands.InteractionBot):
     db_pool: MariaDBPool
     cache: ConnectionPool
+
+    def __init__(self, **kwargs: dict[str, Any]):
+        self.logger = logging.getLogger("Bot")
+        super().__init__(**kwargs)
 
     async def start(
         self,
@@ -52,3 +57,6 @@ class Bot(commands.InteractionBot):
             reconnect=reconnect,
             ignore_session_start_limit=ignore_session_start_limit,
         )
+
+    async def on_ready(self):
+        self.logger.info("Started as %s", self.user)
