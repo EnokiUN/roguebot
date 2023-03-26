@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import math
 from enum import Enum
 from random import randint
-from typing import Any, NamedTuple, Optional, Protocol
+from typing import Any, NamedTuple, Protocol
 
 import disnake as disneyK
 from disnake.ext import plugins
@@ -11,8 +12,9 @@ from disnake.ui.view import View
 
 plugin = plugins.Plugin(name="Game", logger="game plugin")
 
-MAP_WIDTH = 8
-MAP_HEIGHT = 8
+MAP_WIDTH = 7
+MAP_HEIGHT = 7
+PLAYER_DISPLAY = "<:bean:1089532689889107999>"
 
 
 class Position(NamedTuple):
@@ -24,6 +26,7 @@ class Position(NamedTuple):
 
 
 ORIGIN = Position(0, 0)
+CENTER = Position(math.floor(MAP_WIDTH / 2), math.floor(MAP_HEIGHT/2))
 
 
 class Tile(Protocol):
@@ -40,6 +43,12 @@ class Stone(Tile):
     display = "<:stone:1089362910200987688>"
 
 
+class Wall(Tile):
+    name = "Wall"
+    display = "<:wall:1089569990832836608>"
+    solid = True
+
+
 class Book(Tile):
     name = "Book"
     display = ":book:"
@@ -53,18 +62,25 @@ class Book(Tile):
 
 
 class Map:
-    def __init__(self):
+    def __init__(self, position: Position = ORIGIN):
+        self.pos = position
+
         self.tiles: dict[Position, Tile] = {}
         self.items = {}
         self.entities = {}
 
-        self.door_up = None
-        self.door_down = None
-        self.door_left = None
-        self.door_right = None
-
         for y in range(MAP_HEIGHT):
             for x in range(MAP_WIDTH):
+                if (y == 0 or y == MAP_HEIGHT - 1) and (
+                    x < CENTER.x - 1 or x > CENTER.x + 1
+                ):
+                    self.tiles[Position(x, y)] = Wall()
+                    continue
+                if (x == 0 or x == MAP_WIDTH - 1) and (
+                    y < CENTER.y - 1 or y > CENTER.y + 1
+                ):
+                    self.tiles[Position(x, y)] = Wall()
+                    continue
                 if randint(0, 10) == 0:
                     self.tiles[Position(x, y)] = Book()
                     continue
@@ -79,15 +95,30 @@ class Direction(Position, Enum):
 
 
 class Player:
-    def __init__(self, starting_pos: Position = ORIGIN):
+    def __init__(self, starting_pos: Position = CENTER):
         self.pos = starting_pos
 
     def move(self, direction: Direction, game: GameView):
         new_pos = self.pos + direction
-        new_pos = Position(
-            max(min(new_pos.x, MAP_WIDTH - 1), 0),
-            max(min(new_pos.y, MAP_HEIGHT - 1), 0),
-        )
+
+        if new_pos.x == -1:
+            new_map_pos = game.map.pos + Direction.Left
+            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_pos = Position(MAP_WIDTH - 1, new_pos.y)
+        elif new_pos.x == MAP_WIDTH:
+            new_map_pos = game.map.pos + Direction.Right
+            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_pos = Position(0, new_pos.y)
+
+        if new_pos.y == -1:
+            new_map_pos = game.map.pos + Direction.Up
+            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_pos = Position(new_pos.x, MAP_HEIGHT - 1)
+        if new_pos.y == MAP_WIDTH:
+            new_map_pos = game.map.pos + Direction.Down
+            game.map = game.maps.setdefault(new_map_pos, Map(new_map_pos))
+            new_pos = Position(new_pos.x, 0)
+
         tile = game.map.tiles[new_pos]
         tile.interact(game, new_pos)
         if not tile.solid:
@@ -95,9 +126,11 @@ class Player:
 
 
 class GameView(View):
-    def __init__(self) -> None:
+    def __init__(self, user: disneyK.Member) -> None:
+        self.user = user
         self.player = Player()
         self.map = Map()
+        self.maps: dict[Position, Map] = {}
         self.embed = disneyK.Embed(title="Map")
         self.message: str | None = None
         self.data: dict[str, Any] = {}
@@ -109,7 +142,7 @@ class GameView(View):
         for y in range(MAP_HEIGHT):
             for x in range(MAP_WIDTH):
                 if self.player.pos == Position(x, y):
-                    map_preview += "<:bean:1080551938678083674>"
+                    map_preview += PLAYER_DISPLAY
                     continue
                 map_preview += self.map.tiles[Position(x, y)].display
             map_preview += "\n"
@@ -159,10 +192,23 @@ class GameView(View):
     async def filler5(self, *_: object):
         ...
 
+    async def interaction_check(self, interaction: disneyK.MessageInteraction) -> bool:
+        if interaction.author.id != self.user.id:
+            await interaction.send(
+                "This bean is not for you <:bean:1080551938678083674>", ephemeral=True
+            )
+            return False
+        return True
+
 
 @plugin.slash_command(description="Lets you attempt a session of a roguelike")
 async def play(inter: disneyK.CommandInteraction):
-    view = GameView()
+    if isinstance(inter.author, disneyK.User):
+        return await inter.send(
+            "Make sure you're running this in a server <:bean:1080551938678083674>",
+            ephemeral=True,
+        )
+    view = GameView(inter.author)
     await inter.send(embed=view.embed, view=view)
 
 
